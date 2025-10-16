@@ -1,0 +1,14 @@
+# ansible/node_service.yml
+---
+- name: Configure Node.js server and deploy app
+  hosts: web
+  become: true
+  vars:
+    repo_url: "https://github.com/al-fatah/nodejs-service-deploy.git"
+    repo_branch: "master" 
+    app_dir: "/opt/hello-node"
+    service_name: "node-app"
+    app_port: 3000
+  roles:
+    - role: app
+      tags: ["app"]

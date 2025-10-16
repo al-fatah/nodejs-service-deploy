@@ -1,0 +1,16 @@
+# ansible/roles/app/templates/node-app.service.j2
+[Unit]
+Description=Node.js Application
+After=network.target
+
+[Service]
+Environment=PORT={{ app_port }}
+WorkingDirectory={{ app_dir }}/app
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+User=ubuntu
+Group=ubuntu
+
+[Install]
+WantedBy=multi-user.target

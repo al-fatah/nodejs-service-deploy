@@ -1,0 +1,13 @@
+{
+  "name": "hello-node",
+  "version": "1.0.0",
+  "description": "Simple Node.js Hello World service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "echo 'Nothing to build'"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,91 @@
+# ansible/roles/app/tasks/main.yml
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install dependencies
+  apt:
+    name:
+      - curl
+      - gnupg
+      - git
+      - nginx
+    state: present
+
+- name: Add NodeSource repo
+  shell: curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+  args:
+    executable: /bin/bash
+
+- name: Install Node.js
+  apt:
+    name: nodejs
+    state: present
+    update_cache: yes
+
+- name: Create app directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+
+- name: Clone repo
+  git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ repo_branch | default('main') }}"
+    force: yes
+    accept_hostkey: yes
+  become_user: ubuntu
+
+- name: Install Node.js dependencies
+  npm:
+    path: "{{ app_dir }}/app"
+    production: yes
+
+- name: Create systemd service file
+  template:
+    src: node-app.service.j2
+    dest: /etc/systemd/system/{{ service_name }}.service
+    mode: "0644"
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start app service
+  systemd:
+    name: "{{ service_name }}"
+    enabled: yes
+    state: started
+
+- name: Configure Nginx reverse proxy
+  template:
+    src: nginx-node.conf.j2
+    dest: /etc/nginx/sites-available/node.conf
+    mode: "0644"
+
+- name: Enable site and disable default
+  file:
+    src: /etc/nginx/sites-available/node.conf
+    dest: /etc/nginx/sites-enabled/node.conf
+    state: link
+    force: true
+
+- name: Remove default Nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Test Nginx config
+  shell: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Reload Nginx
+  service:
+    name: nginx
+    state: reloaded
