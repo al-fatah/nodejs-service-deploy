@@ -1,0 +1,62 @@
+# -------------------------
+# Node.js
+# -------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.DS_Store
+
+# -------------------------
+# Ansible
+# -------------------------
+*.retry
+*.log
+__pycache__/
+.ansible/
+
+# -------------------------
+# Terraform
+# -------------------------
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+terraform.tfvars
+.terraform.tfvars
+
+# Terraform-generated keys (from tls_private_key)
+terraform/keys/
+
+# -------------------------
+# Python (if you use any scripts)
+# -------------------------
+*.pyc
+__pycache__/
+
+# -------------------------
+# OS / Editor junk
+# -------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# -------------------------
+# GitHub Actions
+# -------------------------
+# (no sensitive files here, but exclude local runs)
+.github/workflows/*.local.yml
+
+# -------------------------
+# Logs
+# -------------------------
+logs/
+*.log
