@@ -39,6 +39,7 @@
     version: "{{ repo_branch | default('main') }}"
     force: yes
     accept_hostkey: yes
+    update: yes
   become_user: ubuntu
 
 - name: Install Node.js dependencies

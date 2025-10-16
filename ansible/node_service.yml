@@ -5,7 +5,7 @@
   become: true
   vars:
     repo_url: "https://github.com/al-fatah/nodejs-service-deploy.git"
-    repo_branch: "master" 
+    repo_branch: "main" 
     app_dir: "/opt/hello-node"
     service_name: "node-app"
     app_port: 3000
