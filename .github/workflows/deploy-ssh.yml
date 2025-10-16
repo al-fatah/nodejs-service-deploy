@@ -1,0 +1,65 @@
+name: Deploy via SSH (rsync)
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent with deploy key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Preload known_hosts (EC2)
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Rsync app/ to server
+        run: |
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=yes" ./app/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/hello-node/app/
+
+      - name: Remote install & restart
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            # Ensure Node & Nginx (first time safety net)
+            if ! command -v node >/dev/null 2>&1; then
+              sudo apt-get update -y
+              sudo apt-get install -y nodejs npm nginx git
+            fi
+
+            cd /opt/hello-node/app
+            # Use npm ci if package-lock.json exists
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install --production
+            fi
+
+            # Restart app and reload Nginx
+            sudo systemctl restart node-app
+            sudo systemctl enable node-app
+            sudo nginx -t && sudo systemctl reload nginx
+
+      - name: Smoke test (curl landing page)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            curl -sSf http://localhost/ | grep -i "Hello, world!"

@@ -1,0 +1,50 @@
+name: Deploy via Ansible
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ansible
+
+      - name: Start SSH agent with deploy key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Preload known_hosts (GitHub + EC2)
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create inventory.ini
+        run: |
+          mkdir -p ansible
+          cat > ansible/inventory.ini <<'EOF'
+          [web]
+          node1 ansible_host=${{ secrets.EC2_HOST }} ansible_user=${{ secrets.EC2_USER }} ansible_ssh_private_key_file=/github/home/.ssh/id_rsa
+          EOF
+
+      - name: Inject runtime vars (repo url / app port)
+        run: |
+          # If you stored REPO_URL as a secret, we pass it via -e to Ansible
+          echo "Repo: ${{ secrets.REPO_URL }}"
+          true
+
+      - name: Run Ansible playbook (app role only)
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/node_service.yml \
+            --tags app \
+            -e "repo_url=${{ secrets.REPO_URL }}" \
+            -e "app_port=${{ secrets.APP_PORT || 3000 }}"
